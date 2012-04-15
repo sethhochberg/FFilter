@@ -1,4 +1,3 @@
-SAMPLE_RATE = 44100 # Hz
 
 import wave, struct, math, argparse
 from numpy import fft
@@ -6,34 +5,35 @@ from numpy import fft
 #Make this thing useful as a command line program
 parser = argparse.ArgumentParser(description='A DFT Filtering Utility. For usage instructions, type \'ffilter --help\'.')
 parser.add_argument('-f', type=str, dest='filename', required=True, help='the name of the WAV file to process')
-parser.add_argument('-n', type=int, dest='FFT_LENGTH', required=True, help='the number of points to take in the DFT')
+parser.add_argument('-n', type=int, dest='fft_length', required=True, help='the number of points to take in the DFT')
 parser.add_argument('-hp', type=float, dest='highpass', required=True, help='cuttoff frequency for brick wall high pass')
-parser.add_argument('-lp', type=float, dest='lowpass', required=True, help='cuttoff frequency for brick wall low pass')
+parser.add_argument('-lp', type=float, dest='lowpass', required=True,  help='cuttoff frequency for brick wall low pass')
+parser.add_argument('-fs', type=int, dest='fs', required=True, default=44100, help='optional sample rate of audio data - default is 44.1khz')
 parser.add_argument('-o', type=str, dest='outfilename', default='out.wav', help='optional file name for output, defaults to out.wav')
 
 args = parser.parse_args()
 
-FFT_LENGTH = args.FFT_LENGTH
+fft_length = args.fft_length
 lowpass = args.lowpass
 highpass = args.highpass
 filename = args.filename
 outfilename = args.outfilename
 
-OVERLAP = 512
-FFT_SAMPLE = FFT_LENGTH - OVERLAP
-NYQUIST_RATE = SAMPLE_RATE / 2.0
+overlap = 512
+FFT_SAMPLE = fft_length - overlap
+nyquist_rate = sample_rate / 2.0
 
 # Convert frequencies from Hz to our digital sampling units
-lowpass /= (NYQUIST_RATE / (FFT_LENGTH / 2.0))
-highpass /= (NYQUIST_RATE / (FFT_LENGTH / 2.0))
+lowpass /= (nyquist_rate / (fft_length / 2.0))
+highpass /= (nyquist_rate / (fft_length / 2.0))
 
-zeros = [ 0 for x in range(0, OVERLAP) ]
+zeros = [ 0 for x in range(0, overlap) ]
 
 # Builds filter mask. Note that this filter is BAD, a
 # good filter must have a smooth curve, respecting a
 # dB/octave attenuation ramp!
 mask = []
-for f in range(0, FFT_LENGTH / 2 + 1):
+for f in range(0, fft_length / 2 + 1):
     rampdown = 1.0
     if f > lowpass:
         rampdown = 0.0
@@ -55,7 +55,7 @@ infile = wave.open(filename, "r")
 filtered = wave.open(outfilename, "w")
 filtered.setnchannels(1)
 filtered.setsampwidth(2)
-filtered.setframerate(SAMPLE_RATE)
+filtered.setframerate(sample_rate)
 
 n = infile.getnframes()
 original = struct.unpack('%dh' % n, infile.readframes(n))
@@ -65,10 +65,10 @@ original = [s / 32768.0 for s in original]
 saved_td = zeros
 
 for pos in range(0, len(original), FFT_SAMPLE):
-    time_sample = original[pos : pos + FFT_LENGTH]
+    time_sample = original[pos : pos + fft_length]
 
     # convert frame to frequency domain representation
-    frequency_domain = fft.fft(time_sample, FFT_LENGTH)
+    frequency_domain = fft.fft(time_sample, fft_length)
     l = len(frequency_domain)
 
     # mask positive frequencies (f[0] is DC component)
@@ -87,9 +87,9 @@ for pos in range(0, len(original), FFT_SAMPLE):
     # prevail in the beginning, and they are ramped down
     # in favor of this frame's samples, to avoid 'clicks'
     # in either end of frame.
-    for i in range(0, OVERLAP):
-        time_domain[i] *= (i + 0.0) / OVERLAP
-        time_domain[i] += saved_td[i] * (1.0 - (i + 0.00) / OVERLAP)
+    for i in range(0, overlap):
+        time_domain[i] *= (i + 0.0) / overlap
+        time_domain[i] += saved_td[i] * (1.0 - (i + 0.00) / overlap)
 
     # reserve last samples for the next frame
     saved_td = time_domain[FFT_SAMPLE:]
