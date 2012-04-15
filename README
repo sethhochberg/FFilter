@@ -1,0 +1,7 @@
+FFilter is an open-source, cross-platform application to implement spectral filtering on audio files.
+
+The application is written in Python using the NumPy signal processing library's FFT and inverse-FFT functionality. File IO for WAV files is provided by Python's standard library.
+
+Example usage: python FFilter.py -f audio.wav -o output.wav -hp 100 -lp 2000 -n 1024
+
+Type use FFilter.py --help for a full breakdown of command line arguments.
